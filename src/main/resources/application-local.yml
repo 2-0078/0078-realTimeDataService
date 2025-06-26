@@ -25,3 +25,8 @@ kis:
     approval-key: ${API_APPROVAL_KEY}
   websocket:
     approval-key: ${SOCKET_APPROVAL_KEY}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
