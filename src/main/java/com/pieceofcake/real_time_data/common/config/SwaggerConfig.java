@@ -35,8 +35,8 @@ public class SwaggerConfig {
 
     private Info apiInfo() {
         return new Info()
-                .title("Piece Service API DOCS")
-                .description("piece-service API 테스트를 위한 Swagger UI")
+                .title("Real Time Data Service API DOCS")
+                .description("Real-time-data-service API 테스트를 위한 Swagger UI")
                 .version("1.0.0");
     }
 
