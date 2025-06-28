@@ -42,9 +42,12 @@ jobs:
           echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" >> .env
           
           echo "APP_KEY=${{ secrets.APP_KEY }}" >> .env
+          echo "REAL_APP_KEY=${{ secrets.REAL_APP_KEY }}" >> .env
           echo "APP_SECRET_KEY=${{ secrets.APP_SECRET_KEY }}" >> .env
+          echo "REAL_APP_SECRET_KEY=${{ secrets.REAL_APP_SECRET_KEY }}" >> .env
           echo "API_APPROVAL_KEY=${{ secrets.API_APPROVAL_KEY }}" >> .env
           echo "SOCKET_APPROVAL_KEY=${{ secrets.SOCKET_APPROVAL_KEY }}" >> .env
+          echo "REAL_WEBSOCKET_APPROVAL_KEY=${{ secrets.REAL_WEBSOCKET_APPROVAL_KEY }}" >> .env
           
           echo "EC2_DB=${{ secrets.EC2_DB }}" >> .env
           echo "EC2_HOST2=${{ secrets.EC2_HOST2 }}" >> .env

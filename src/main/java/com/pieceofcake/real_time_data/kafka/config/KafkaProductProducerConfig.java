@@ -1,4 +1,4 @@
-package com.pieceofcake.real_time_data.stocktest.kafka.config;
+package com.pieceofcake.real_time_data.kafka.config;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
