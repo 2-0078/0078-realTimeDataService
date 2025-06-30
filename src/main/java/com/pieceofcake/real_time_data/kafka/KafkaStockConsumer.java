@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pieceofcake.real_time_data.kisapi.mapper.PieceProductStockMapper;
 import com.pieceofcake.real_time_data.stocktest.websocket.StockQuotes;
 import com.pieceofcake.real_time_data.stocktest.websocket.StockWebSocketHandler;
+import com.pieceofcake.real_time_data.websocket.dto.GetRealTimeMarketPriceResponseDto;
 import com.pieceofcake.real_time_data.websocket.dto.GetRealTimeQuotesResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -53,9 +55,40 @@ public class KafkaStockConsumer {
         }
     }
 
-    @KafkaListener(topics = "execution-stock-data", groupId = "execution-stock-group",  containerFactory = "realTimeDataEventListener")
+    @KafkaListener(topics = "market-price-stock-data", groupId = "market-price-stock-group",  containerFactory = "realTimeDataEventListener")
     public void consumeExecutionRealTimeData(String message){
-        log.info("kafka execution-stock-data consume {}", message);
-        stockWebSocketHandler.broadcast(StockQuotes.toDto(message));
+        log.info("kafka market-price-stock-data consume {}", message);
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode root = objectMapper.readTree(message);
+
+            String stockCode = root.path("stockCode").asText();
+            String rawJson = root.path("rawJson").asText();
+
+            // 종목코드에 매핑된 productUuid들 가져오기
+            Set<String> pieceUuids = mapper.getPieceProductUuidsByStockCode(stockCode);
+
+            // rawJson → List<DTO> 변환
+            List<GetRealTimeMarketPriceResponseDto> dtoList = GetRealTimeMarketPriceResponseDto.toDto(stockCode, rawJson);
+            if (dtoList.isEmpty()) {
+                log.warn("⚠️ 변환된 데이터가 없습니다: {}", rawJson);
+                return;
+            }
+
+            for (GetRealTimeMarketPriceResponseDto dto : dtoList) {
+                String json = objectMapper.writeValueAsString(dto);
+                log.info("🔍 MarketPrice 직렬화 확인: {}", json);
+                log.info("StockCode: {} , ProductUuids: {}", dto.getStockCode(), pieceUuids);
+
+                for (String pieceUuid : pieceUuids) {
+                    messagingTemplate.convertAndSend("/topic/market-price." + pieceUuid, dto);
+                    log.info("📤 WebSocket 전송: /topic/market-price.{} → {}", pieceUuid, dto);
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Kafka 메시지 처리 실패", e);
+        }
     }
 }

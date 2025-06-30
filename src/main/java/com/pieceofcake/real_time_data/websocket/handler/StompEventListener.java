@@ -26,19 +26,29 @@ public class StompEventListener {
     @EventListener
     public void handleUnsubscribe(SessionUnsubscribeEvent event) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
-        String subscriptionId = accessor.getSubscriptionId(); // sub-piece-{uuid}
+        String subscriptionId = accessor.getSubscriptionId(); // sub-quotes-{uuid} 또는 sub-market-{uuid}
         log.info("🛑 구독 해제 감지: {}", subscriptionId);
 
-        if (subscriptionId != null && subscriptionId.startsWith("sub-piece-")) {
-            // "sub-piece-" 다음이 uuid
-            String pieceProductUuid = subscriptionId.substring("sub-piece-".length());
-            log.info("🗑 매핑 제거 대상 UUID: {}", pieceProductUuid);
+        if (subscriptionId == null) {
+            log.warn("⚠️ subscriptionId가 null입니다.");
+            return;
+        }
 
-            mapper.removeSubscriberForPieceUuid(pieceProductUuid);
+        if (subscriptionId.startsWith("sub-quotes-")) {
+            String pieceProductUuid = subscriptionId.substring("sub-quotes-".length());
+            log.info("🗑 [호가] 매핑 제거 대상 UUID: {}", pieceProductUuid);
+            mapper.removeSubscriberForPieceUuid(pieceProductUuid, true);
+
+        } else if (subscriptionId.startsWith("sub-market-")) {
+            String pieceProductUuid = subscriptionId.substring("sub-market-".length());
+            log.info("🗑 [시세] 매핑 제거 대상 UUID: {}", pieceProductUuid);
+            mapper.removeSubscriberForPieceUuid(pieceProductUuid, false);
+
         } else {
             log.warn("⚠️ 예상치 못한 subscriptionId 형식: {}", subscriptionId);
         }
     }
+
 
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
@@ -51,9 +61,10 @@ public class StompEventListener {
         if (products != null) {
             for (String productUuid : products) {
                 log.info("🛑 연결 종료로 매핑 제거 - session: {}, uuid: {}", sessionId, productUuid);
-                mapper.removeSubscriberForPieceUuid(productUuid);
+                // 두 매퍼 모두에서 제거
+                mapper.removeSubscriberForPieceUuid(productUuid, true);
+                mapper.removeSubscriberForPieceUuid(productUuid, false);
             }
-            assert sessionId != null;
             sessionToProductMap.remove(sessionId);
         } else {
             log.info("ℹ️ 연결 종료 감지 - 구독 기록 없음: sessionId={}", sessionId);
@@ -64,14 +75,35 @@ public class StompEventListener {
     public void handleSubscribe(SessionSubscribeEvent event) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
         String sessionId = accessor.getSessionId();
-        String destination = accessor.getDestination(); // ex) /topic/piece.product-123
+        String destination = accessor.getDestination(); // 예: /topic/quotes.{uuid} 또는 /topic/market-price.{uuid}
 
-        if (destination != null && destination.startsWith("/topic/quotes.")) {
-            String productUuid = destination.substring("/topic/quotes.".length());
+        if (destination == null) {
+            log.warn("⚠️ 구독 destination이 null입니다.");
+            return;
+        }
+
+        String productUuid = null;
+        String subscriptionType = null;
+        boolean isQuotes = false;
+
+        if (destination.startsWith("/topic/quotes.")) {
+            productUuid = destination.substring("/topic/quotes.".length());
+            subscriptionType = "quotes";
+            isQuotes = true;
+        } else if (destination.startsWith("/topic/market-price.")) {
+            productUuid = destination.substring("/topic/market-price.".length());
+            subscriptionType = "market";
+            isQuotes = false;
+        }
+
+        if (productUuid != null && subscriptionType != null) {
             sessionToProductMap
                     .computeIfAbsent(sessionId, k -> ConcurrentHashMap.newKeySet())
                     .add(productUuid);
-            log.info("✅ 구독 기록 - sessionId: {}, productUuid: {}", sessionId, productUuid);
+
+            log.info("✅ [{}] 구독 기록 - sessionId: {}, productUuid: {}", subscriptionType, sessionId, productUuid);
+        } else {
+            log.warn("⚠️ 예상치 못한 destination 형식: {}", destination);
         }
     }
 }
