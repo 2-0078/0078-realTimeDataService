@@ -14,7 +14,7 @@ public class StockController {
 
     @GetMapping
     public void connectStockData(){
-        kisStockService.connectStockQuoteData();
+//        kisStockService.connectStockQuoteData();
 //        kisStockService.connectStockExecutionPriceData();
     }
 }
