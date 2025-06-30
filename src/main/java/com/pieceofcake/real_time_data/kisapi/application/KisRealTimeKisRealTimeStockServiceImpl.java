@@ -29,7 +29,7 @@ public class KisRealTimeKisRealTimeStockServiceImpl implements KisRealTimeStockS
     @Value("${kis.websocket.real-approval-key}")
     private String realStockApprovalKey; // 발급받은 key
 
-//    @PostConstruct
+    @PostConstruct
     public void autoReconnectIfMarketOpen() {
         LocalTime now = LocalTime.now();
         LocalTime marketOpen = LocalTime.of(8, 55);
