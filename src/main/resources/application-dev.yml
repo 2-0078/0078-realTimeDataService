@@ -19,10 +19,13 @@ spring:
 kis:
   app-key: ${APP_KEY}
   app-secret-key: ${APP_SECRET_KEY}
+  real-app-key: ${REAL_APP_KEY}
+  real-app-secret-key: ${REAL_APP_SECRET_KEY}
   api:
     approval-key: ${API_APPROVAL_KEY}
   websocket:
     approval-key: ${SOCKET_APPROVAL_KEY}
+    real-approval-key: ${REAL_WEBSOCKET_APPROVAL_KEY}
 
 eureka:
   client:
