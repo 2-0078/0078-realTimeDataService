@@ -43,7 +43,7 @@ public class KisRealTimeKisRealTimeStockServiceImpl implements KisRealTimeStockS
         }
     }
 
-    @Scheduled(cron = "0 55 8 * * MON-FRI")
+    @Scheduled(cron = "0 55 23 * * SUN-THU")
     public void connectRealTimeData() {
         log.info("📡 [START] 실시간 주식 WebSocket 연결 시도 (호가 + 체결)");
 
@@ -66,7 +66,7 @@ public class KisRealTimeKisRealTimeStockServiceImpl implements KisRealTimeStockS
                 });
     }
 
-    @Scheduled(cron = "0 35 19 * * MON-FRI")
+    @Scheduled(cron = "0 5 7 * * MON-FRI")
     public void stopRealTimeSubscription() {
         log.info("📴 [STOP] 실시간 데이터 연결 종료");
         client.disconnect("stock-realtime", realStockApprovalKey);
