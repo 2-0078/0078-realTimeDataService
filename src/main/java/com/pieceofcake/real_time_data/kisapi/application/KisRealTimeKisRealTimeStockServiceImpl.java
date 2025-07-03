@@ -42,7 +42,14 @@ public class KisRealTimeKisRealTimeStockServiceImpl implements KisRealTimeStockS
 
         boolean isWeekday = dayOfWeek != DayOfWeek.SATURDAY;
 
-        if (isWeekday && !now.isBefore(marketOpen) && !now.isAfter(marketClose)) {
+        boolean inMarketHours;
+        if (marketOpen.isBefore(marketClose)) {
+            inMarketHours = !now.isBefore(marketOpen) && !now.isAfter(marketClose);
+        } else {
+            inMarketHours = !now.isBefore(marketOpen) || !now.isAfter(marketClose);
+        }
+
+        if (isWeekday && inMarketHours) {
             log.info("🕐 서버 재시작 감지 – 장중 시간(UTC), 자동 재연결 시도");
             connectRealTimeData();
         } else {
