@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -31,15 +33,20 @@ public class KisRealTimeKisRealTimeStockServiceImpl implements KisRealTimeStockS
 
     @PostConstruct
     public void autoReconnectIfMarketOpen() {
-        LocalTime now = LocalTime.now();
-        LocalTime marketOpen = LocalTime.of(8, 55);
-        LocalTime marketClose = LocalTime.of(19, 35);
+        LocalDateTime nowDateTime = LocalDateTime.now();
+        DayOfWeek dayOfWeek = nowDateTime.getDayOfWeek();
 
-        if (!now.isBefore(marketOpen) && !now.isAfter(marketClose)) {
-            log.info("🕐 서버 재시작 감지 – 장중 시간, 자동 재연결 시도");
+        LocalTime now = LocalTime.now();
+        LocalTime marketOpen = LocalTime.of(23, 55);
+        LocalTime marketClose = LocalTime.of(7, 5);
+
+        boolean isWeekday = dayOfWeek != DayOfWeek.SATURDAY;
+
+        if (isWeekday && !now.isBefore(marketOpen) && !now.isAfter(marketClose)) {
+            log.info("🕐 서버 재시작 감지 – 장중 시간(UTC), 자동 재연결 시도");
             connectRealTimeData();
         } else {
-            log.info("🕐 서버 재시작 감지 – 장외 시간, 연결 생략");
+            log.info("🕐 서버 재시작 감지 – 장외 시간(UTC), 연결 생략");
         }
     }
 
