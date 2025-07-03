@@ -49,6 +49,7 @@ public class KisApiController {
         return new BaseResponseEntity<>(kisApiService.getDailyIntradayChart(pieceProductUuid, time, date).toVo());
     }
 
+    @Operation(summary = "주식 기간별 시세 조회")
     @GetMapping("/period/{pieceProductUuid}")
     public BaseResponseEntity<GetPeriodMarketPriceListResponseVo> getPeriodMarketPriceInfo(
             @PathVariable String pieceProductUuid,
