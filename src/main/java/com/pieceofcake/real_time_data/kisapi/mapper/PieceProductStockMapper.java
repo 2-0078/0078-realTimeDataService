@@ -3,19 +3,20 @@ package com.pieceofcake.real_time_data.kisapi.mapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Component
 public class PieceProductStockMapper {
 
-    // 세션ID별 구독한 UUID를 기록
-    private final Map<String, Set<String>> sessionToProductMap = new ConcurrentHashMap<>();
     private final Map<String, SubscriptionCounter> productSubscriberCounts = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> stockToProductMap = new ConcurrentHashMap<>();
     private final Map<String, String> productToStockMap = new ConcurrentHashMap<>();
@@ -23,10 +24,19 @@ public class PieceProductStockMapper {
             "005930", "000660", "373220", "207940", "005380",
             "005935", "000270", "068270", "005490", "105560");
 
-    // 구독자 카운터를 quotes(호가) / market(시세)로 분리
-    private static class SubscriptionCounter {
-        AtomicInteger quotesCount = new AtomicInteger(0);
-        AtomicInteger marketCount = new AtomicInteger(0);
+    public String getOrAssignStockCodeForSingleQuery(String productUuid) {
+        String stockCode = productToStockMap.computeIfAbsent(productUuid, uuid -> {
+            int idx = ThreadLocalRandom.current().nextInt(stockCodePool.size());
+            String assignedStockCode = stockCodePool.get(idx);
+            stockToProductMap.computeIfAbsent(assignedStockCode, k -> ConcurrentHashMap.newKeySet())
+                    .add(productUuid);
+            // 단일조회 전용 매핑은 구독자 카운터는 건드리지 않음
+            scheduleMappingRemoval(productUuid, assignedStockCode, Duration.ofMinutes(60));
+
+            log.info("🆕 단일조회용 매핑 생성 및 TTL 설정 - {} -> {} (60분 후 제거 예정)", productUuid, assignedStockCode);
+            return assignedStockCode;
+        });
+        return stockCode;
     }
 
     public String getOrAssignStockCode(String productUuid, boolean isQuotes) {
@@ -91,9 +101,28 @@ public class PieceProductStockMapper {
         }
     }
 
-
     public Set<String> getPieceProductUuidsByStockCode(String stockCode) {
         return stockToProductMap.getOrDefault(stockCode, Set.of());
+    }
+
+    private void scheduleMappingRemoval(String productUuid, String stockCode, Duration ttl) {
+        Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+            productToStockMap.remove(productUuid);
+            Set<String> pieceUuids = stockToProductMap.get(stockCode);
+            if (pieceUuids != null) {
+                pieceUuids.remove(productUuid);
+                if (pieceUuids.isEmpty()) {
+                    stockToProductMap.remove(stockCode);
+                }
+            }
+            log.info("⏰ TTL 도래로 단일조회용 매핑 제거 완료 - pieceUuid: {} stockCode: {}", productUuid, stockCode);
+        }, ttl.toMillis(), TimeUnit.MILLISECONDS);
+    }
+
+    // 구독자 카운터를 quotes(호가) / market(시세)로 분리
+    private static class SubscriptionCounter {
+        AtomicInteger quotesCount = new AtomicInteger(0);
+        AtomicInteger marketCount = new AtomicInteger(0);
     }
 }
 
