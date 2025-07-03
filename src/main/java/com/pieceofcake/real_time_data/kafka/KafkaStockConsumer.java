@@ -3,8 +3,6 @@ package com.pieceofcake.real_time_data.kafka;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pieceofcake.real_time_data.kisapi.mapper.PieceProductStockMapper;
-import com.pieceofcake.real_time_data.stocktest.websocket.StockQuotes;
-import com.pieceofcake.real_time_data.stocktest.websocket.StockWebSocketHandler;
 import com.pieceofcake.real_time_data.websocket.dto.GetRealTimeMarketPriceResponseDto;
 import com.pieceofcake.real_time_data.websocket.dto.GetRealTimeQuotesResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +19,11 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class KafkaStockConsumer {
     private final SimpMessagingTemplate messagingTemplate;
-    private final StockWebSocketHandler stockWebSocketHandler;
     private final PieceProductStockMapper mapper;
 
 
-    @KafkaListener(topics = "quotes-stock-data", groupId = "stock-quotes-group",  containerFactory = "realTimeDataEventListener")
-    public void consumeQuotesRealTimeData(String message){
+    @KafkaListener(topics = "quotes-stock-data", groupId = "stock-quotes-group", containerFactory = "realTimeDataEventListener")
+    public void consumeQuotesRealTimeData(String message) {
         log.info("kafka quotes-stock-data consume {}", message);
 
         try {
@@ -55,8 +52,8 @@ public class KafkaStockConsumer {
         }
     }
 
-    @KafkaListener(topics = "market-price-stock-data", groupId = "market-price-stock-group",  containerFactory = "realTimeDataEventListener")
-    public void consumeExecutionRealTimeData(String message){
+    @KafkaListener(topics = "market-price-stock-data", groupId = "market-price-stock-group", containerFactory = "realTimeDataEventListener")
+    public void consumeExecutionRealTimeData(String message) {
         log.info("kafka market-price-stock-data consume {}", message);
 
         try {
