@@ -1,5 +1,6 @@
 package com.pieceofcake.real_time_data.websocket.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,19 @@ public class GetRealTimeMarketPriceResponseDto {
         this.stckOprc = stckOprc;
         this.stckHgpr = stckHgpr;
         this.stckLwpr = stckLwpr;
+    }
+
+    public static List<GetRealTimeMarketPriceResponseDto> redisToDto(JsonNode json){
+        List<GetRealTimeMarketPriceResponseDto> result = new ArrayList<>();
+
+        long piecePrice = json.get("piecePrice").asLong();
+
+        GetRealTimeMarketPriceResponseDto dto = GetRealTimeMarketPriceResponseDto.builder()
+                .stckPrpr(piecePrice)
+                .build();
+
+        result.add(dto);
+        return result;
     }
 
     public static List<GetRealTimeMarketPriceResponseDto> toDto(String stockCode, String rawJson) {
