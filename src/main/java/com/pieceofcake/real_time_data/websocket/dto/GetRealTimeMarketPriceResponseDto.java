@@ -1,10 +1,14 @@
 package com.pieceofcake.real_time_data.websocket.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.pieceofcake.real_time_data.kisapi.entity.KisMarketPrice;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,17 +21,23 @@ public class GetRealTimeMarketPriceResponseDto {
     private Long stckOprc;  // 시가
     private Long stckHgpr;  // 최고가
     private Long stckLwpr;  // 최저가
+    private Long cntgVol;   // 체결 거래량
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime date; // 체결 날짜&시간
 
     @Builder
-    public GetRealTimeMarketPriceResponseDto(String stockCode, Long stckPrpr, Long stckOprc, Long stckHgpr, Long stckLwpr) {
+    public GetRealTimeMarketPriceResponseDto(String stockCode, Long stckPrpr, Long stckOprc, Long stckHgpr,
+                                             Long stckLwpr, Long cntgVol, LocalDateTime date) {
         this.stockCode = stockCode;
         this.stckPrpr = stckPrpr;
         this.stckOprc = stckOprc;
         this.stckHgpr = stckHgpr;
         this.stckLwpr = stckLwpr;
+        this.cntgVol = cntgVol;
+        this.date = date;
     }
 
-    public static List<GetRealTimeMarketPriceResponseDto> redisToDto(JsonNode json){
+    public static List<GetRealTimeMarketPriceResponseDto> redisToDto(JsonNode json) {
         List<GetRealTimeMarketPriceResponseDto> result = new ArrayList<>();
 
         long piecePrice = json.get("piecePrice").asLong();
@@ -66,10 +76,12 @@ public class GetRealTimeMarketPriceResponseDto {
             int baseIdx = i * fieldsPerData;
 
             try {// 종목코드
+                LocalDateTime stckCntgHour = parseTradeTime(fields[baseIdx + 1]);
                 Long stckPrpr = parseLong(fields[baseIdx + 2]); // 현재가
                 Long stckOprc = parseLong(fields[baseIdx + 7]); // 시가
                 Long stckHgpr = parseLong(fields[baseIdx + 8]); // 고가
                 Long stckLwpr = parseLong(fields[baseIdx + 9]); // 저가
+                Long cntgVol = parseLong(fields[baseIdx + 12]);  // 체결 거래량
 
                 GetRealTimeMarketPriceResponseDto dto = GetRealTimeMarketPriceResponseDto.builder()
                         .stockCode(stockCode)
@@ -77,6 +89,8 @@ public class GetRealTimeMarketPriceResponseDto {
                         .stckOprc(stckOprc)
                         .stckHgpr(stckHgpr)
                         .stckLwpr(stckLwpr)
+                        .cntgVol(cntgVol)
+                        .date(stckCntgHour)
                         .build();
 
                 result.add(dto);
@@ -96,4 +110,33 @@ public class GetRealTimeMarketPriceResponseDto {
         }
     }
 
+    /**
+     * 체결시간 문자열(STCK_CNTG_HOUR)을 현재 날짜와 합쳐 LocalDateTime으로 변환
+     * 예) "103339" -> 오늘 날짜의 10:33:39
+     */
+    public static LocalDateTime parseTradeTime(String stckCntgHour) {
+        if (stckCntgHour == null || stckCntgHour.length() != 6) {
+            throw new IllegalArgumentException("체결 시간 문자열은 6자리여야 합니다. 예: '103339'");
+        }
+
+        int hour = Integer.parseInt(stckCntgHour.substring(0, 2));
+        int minute = Integer.parseInt(stckCntgHour.substring(2, 4));
+        int second = Integer.parseInt(stckCntgHour.substring(4, 6));
+
+        LocalDate today = LocalDate.now();
+
+        return today.atTime(hour, minute, second);
+    }
+
+    public KisMarketPrice toEntity() {
+        return KisMarketPrice.builder()
+                .stockCode(stockCode)
+                .startingPrice(stckOprc)
+                .maximumPrice(stckHgpr)
+                .minimumPrice(stckLwpr)
+                .currentPrice(stckPrpr)
+                .tradeQuantity(cntgVol)
+                .date(date)
+                .build();
+    }
 }
