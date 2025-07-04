@@ -10,6 +10,8 @@ import com.pieceofcake.real_time_data.kisapi.vo.out.GetPeriodMarketPriceListResp
 import com.pieceofcake.real_time_data.kisapi.vo.out.GetPieceMarketPriceResponseVo;
 import com.pieceofcake.real_time_data.kisapi.vo.out.GetPieceQuotesResponseVo;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +22,31 @@ public class KisApiController {
 
     private final KisApiServiceImpl kisApiService;
 
-    @Operation(summary = "주식 시세 단건 조회")
+    @Operation(
+            summary = "주식 시세 단건 조회",
+            description = """
+        한국투자의 현재 시세 정보를 조회합니다.
+        
+        반환되는 정보는 다음과 같습니다:
+        - stckPrpr: 현재가(체결가)
+        - stckOprc: 주식 시가
+        - stckHgpr: 주식 최고가
+        - stckLwpr: 주식 최저가
+        - prdyVrssSign: 전일 대비 부호 (1: 상한, 2: 상승, 3: 보합, 4: 하한, 5: 하락)
+        - prdyVrss: 전일 대비 가격 (절대값)
+        - prdyCrt: 전일 대비율(%)
+        """,
+            parameters = {
+                    @Parameter(
+                            name = "pieceProductUuid",
+                            description = "조회할 조각 상품의 UUID",
+                            in = ParameterIn.PATH,
+                            required = true,
+                            example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    )
+            }
+    )
+
     @GetMapping("/market-price/{pieceProductUuid}")
     public BaseResponseEntity<GetPieceMarketPriceResponseVo> getPieceMarketPrice(@PathVariable String pieceProductUuid) {
         return new BaseResponseEntity<>(kisApiService.getPieceMarketPrice(pieceProductUuid).toVo());
