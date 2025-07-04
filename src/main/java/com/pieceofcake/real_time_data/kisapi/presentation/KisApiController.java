@@ -15,10 +15,9 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-@RequestMapping("api/v1/kis-api")
+@RequestMapping("/api/v1/kis-api")
 @RequiredArgsConstructor
 @RestController
-@CrossOrigin(origins = "*")
 public class KisApiController {
 
     private final KisApiServiceImpl kisApiService;
