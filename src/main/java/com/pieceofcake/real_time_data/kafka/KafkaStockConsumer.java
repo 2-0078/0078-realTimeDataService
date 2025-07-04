@@ -2,6 +2,9 @@ package com.pieceofcake.real_time_data.kafka;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.pieceofcake.real_time_data.kisapi.application.KisMarketPriceEntityServiceImpl;
 import com.pieceofcake.real_time_data.kisapi.mapper.PieceProductStockMapper;
 import com.pieceofcake.real_time_data.websocket.dto.GetRealTimeMarketPriceResponseDto;
 import com.pieceofcake.real_time_data.websocket.dto.GetRealTimeQuotesResponseDto;
@@ -20,7 +23,7 @@ import java.util.Set;
 public class KafkaStockConsumer {
     private final SimpMessagingTemplate messagingTemplate;
     private final PieceProductStockMapper mapper;
-
+    private final KisMarketPriceEntityServiceImpl kisMarketPriceEntityService;
 
     @KafkaListener(topics = "quotes-stock-data", groupId = "stock-quotes-group", containerFactory = "realTimeDataEventListener")
     public void consumeQuotesRealTimeData(String message) {
@@ -57,7 +60,9 @@ public class KafkaStockConsumer {
         log.info("kafka market-price-stock-data consume {}", message);
 
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectMapper objectMapper = new ObjectMapper()
+                    .registerModule(new JavaTimeModule())
+                    .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
             JsonNode root = objectMapper.readTree(message);
 
             String stockCode = root.path("stockCode").asText();
@@ -72,6 +77,8 @@ public class KafkaStockConsumer {
                 log.warn("⚠️ 변환된 데이터가 없습니다: {}", rawJson);
                 return;
             }
+
+            kisMarketPriceEntityService.saveKisMarketPrice(dtoList);
 
             for (GetRealTimeMarketPriceResponseDto dto : dtoList) {
                 String json = objectMapper.writeValueAsString(dto);
