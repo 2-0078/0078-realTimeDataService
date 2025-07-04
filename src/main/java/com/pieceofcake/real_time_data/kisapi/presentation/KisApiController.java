@@ -33,7 +33,7 @@ public class KisApiController {
         - stckHgpr: 주식 최고가
         - stckLwpr: 주식 최저가
         - prdyVrssSign: 전일 대비 부호 (1: 상한, 2: 상승, 3: 보합, 4: 하한, 5: 하락)
-        - prdyVrss: 전일 대비 가격 (절대값)
+        - prdyVrss: 전일 대비 가격
         - prdyCrt: 전일 대비율(%)
         """,
             parameters = {
