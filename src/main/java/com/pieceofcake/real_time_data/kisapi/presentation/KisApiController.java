@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("api/v1/kis-api")
 @RequiredArgsConstructor
 @RestController
+@CrossOrigin(origins = "*")
 public class KisApiController {
 
     private final KisApiServiceImpl kisApiService;
