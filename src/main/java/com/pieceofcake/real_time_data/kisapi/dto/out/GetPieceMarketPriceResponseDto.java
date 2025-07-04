@@ -2,11 +2,9 @@ package com.pieceofcake.real_time_data.kisapi.dto.out;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pieceofcake.real_time_data.common.entity.BaseResponseStatus;
 import com.pieceofcake.real_time_data.kisapi.vo.out.GetPieceMarketPriceResponseVo;
 import lombok.Builder;
 import lombok.Getter;
-import org.springframework.http.ResponseEntity;
 
 @Getter
 public class GetPieceMarketPriceResponseDto {
@@ -14,16 +12,23 @@ public class GetPieceMarketPriceResponseDto {
     private Long stckOprc;
     private Long stckHgpr;
     private Long stckLwpr;
+    private String prdyVrssSign;
+    private Long prdyVrss;
+    private Double prdyCrt;
 
     @Builder
-    public GetPieceMarketPriceResponseDto(Long stckPrpr, Long stckOprc, Long stckHgpr, Long stckLwpr) {
+    public GetPieceMarketPriceResponseDto(Long stckPrpr, Long stckOprc, Long stckHgpr, Long stckLwpr,
+                                          String prdyVrssSign, Long prdyVrss, Double prdyCrt) {
         this.stckPrpr = stckPrpr;
         this.stckOprc = stckOprc;
         this.stckHgpr = stckHgpr;
         this.stckLwpr = stckLwpr;
+        this.prdyVrssSign = prdyVrssSign;
+        this.prdyVrss = prdyVrss;
+        this.prdyCrt = prdyCrt;
     }
 
-    public static GetPieceMarketPriceResponseDto toDto(String response){
+    public static GetPieceMarketPriceResponseDto toDto(String response) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode root = objectMapper.readTree(response);
@@ -35,11 +40,18 @@ public class GetPieceMarketPriceResponseDto {
             Long stckHgpr = output.path("stck_hgpr").asLong();
             Long stckLwpr = output.path("stck_lwpr").asLong();
 
+            String prdyVrssSign = output.path("prdy_vrss_sign").asText();
+            Long prdyVrss = output.path("prdy_vrss").asLong();
+            Double prdyCrt = output.path("prdy_ctrt").asDouble();
+
             return GetPieceMarketPriceResponseDto.builder()
                     .stckPrpr(stckPrpr)
                     .stckOprc(stckOprc)
                     .stckHgpr(stckHgpr)
                     .stckLwpr(stckLwpr)
+                    .prdyVrssSign(prdyVrssSign)
+                    .prdyVrss(prdyVrss)
+                    .prdyCrt(prdyCrt)
                     .build();
 
         } catch (Exception e) {
@@ -53,6 +65,9 @@ public class GetPieceMarketPriceResponseDto {
                 .stckOprc(stckOprc)
                 .stckHgpr(stckHgpr)
                 .stckLwpr(stckLwpr)
+                .prdyVrssSign(prdyVrssSign)
+                .prdyVrss(prdyVrss)
+                .prdyCrt(prdyCrt)
                 .build();
     }
 }
