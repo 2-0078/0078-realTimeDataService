@@ -29,8 +29,9 @@ public class KisRealTimeStockServiceImpl implements KisRealTimeStockService {
 //            "035420", "006400", "051910", "028260", "055550",
 //            "012330", "003670", "035720", "247540", "009830");
 
-    //    @Value("${kis.websocket.real-approval-key}")
-    @Value("${kis.websocket.approval-key}")
+
+//    @Value("${kis.websocket.approval-key}")
+@Value("${kis.websocket.real-approval-key}")
     private String realStockApprovalKey; // 발급받은 key
 
     @PostConstruct
