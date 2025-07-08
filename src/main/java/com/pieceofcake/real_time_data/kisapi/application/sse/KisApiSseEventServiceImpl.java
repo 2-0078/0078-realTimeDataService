@@ -10,6 +10,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -47,6 +48,13 @@ public class KisApiSseEventServiceImpl implements KisApiSseEventService {
             }
             return existingSink;
         });
+
+        // ✅ init 이벤트 생성 (T 타입에 따라 다르게 처리)
+        Flux<T> initEvent = Flux.defer(() -> {
+            T init = createInitEvent(pieceProductUuid);
+            return init != null ? Flux.just(init) : Flux.empty();
+        });
+
 
         return sink.asFlux()
                 .doOnSubscribe(sub -> log.info("[SSE] 구독 시작: pieceProductUuid={}", pieceProductUuid))
@@ -93,4 +101,33 @@ public class KisApiSseEventServiceImpl implements KisApiSseEventService {
             log.warn("[SSE] sink 없음: pieceProductUuid={}, eventType={}", pieceProductUuid, event.getClass().getSimpleName());
         }
     }
+
+    @SuppressWarnings("unchecked")
+    private <T> T createInitEvent(String pieceProductUuid) {
+        // 주어진 UUID를 stockCode로 가정 (필요 시 변환 규칙 적용)
+        if (quotesSinks.containsKey(pieceProductUuid)) {
+            return (T) GetRealTimeQuotesResponseDto.builder()
+                    .stockCode(pieceProductUuid)
+                    .askp(new ArrayList<>())
+                    .bidp(new ArrayList<>())
+                    .askpRsqn(new ArrayList<>())
+                    .bidRsqn(new ArrayList<>())
+                    .build();
+        }
+
+        if (matchedSinks.containsKey(pieceProductUuid)) {
+            return (T) GetRealTimeMarketPriceResponseDto.builder()
+                    .stockCode(pieceProductUuid)
+                    .stckPrpr(null)
+                    .stckOprc(null)
+                    .stckHgpr(null)
+                    .stckLwpr(null)
+                    .cntgVol(null)
+                    .date(null)
+                    .build();
+        }
+
+        return null;
+    }
+
 }
