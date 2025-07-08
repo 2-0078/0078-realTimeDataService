@@ -128,6 +128,18 @@ public class GetRealTimeMarketPriceResponseDto {
         return today.atTime(hour, minute, second);
     }
 
+    public static GetRealTimeMarketPriceResponseDto from(KisMarketPrice entity) {
+        return GetRealTimeMarketPriceResponseDto.builder()
+                .stockCode(entity.getStockCode())
+                .stckPrpr(entity.getCurrentPrice())
+                .stckOprc(entity.getStartingPrice())
+                .stckHgpr(entity.getMaximumPrice())
+                .stckLwpr(entity.getMinimumPrice())
+                .cntgVol(entity.getTradeQuantity())
+                .date(entity.getDate())
+                .build();
+    }
+
     public KisMarketPrice toEntity() {
         return KisMarketPrice.builder()
                 .stockCode(stockCode)

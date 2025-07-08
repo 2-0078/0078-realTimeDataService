@@ -1,5 +1,6 @@
 package com.pieceofcake.real_time_data.websocket.dto;
 
+import com.pieceofcake.real_time_data.kisapi.entity.KisQuotes;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -90,4 +91,23 @@ public class GetRealTimeQuotesResponseDto {
         }
     }
 
+    public static GetRealTimeQuotesResponseDto from(KisQuotes entity) {
+        return GetRealTimeQuotesResponseDto.builder()
+                .stockCode(entity.getStockCode())
+                .askp(entity.getAskp())
+                .bidp(entity.getBidp())
+                .askpRsqn(entity.getAskpRsqn())
+                .bidRsqn(entity.getBidRsqn())
+                .build();
+    }
+
+    public KisQuotes toEntity() {
+        return KisQuotes.builder()
+                .stockCode(stockCode)
+                .askp(askp)
+                .askpRsqn(askpRsqn)
+                .bidp(bidp)
+                .bidRsqn(bidRsqn)
+                .build();
+    }
 }

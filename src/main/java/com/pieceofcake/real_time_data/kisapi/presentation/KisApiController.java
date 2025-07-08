@@ -2,7 +2,7 @@ package com.pieceofcake.real_time_data.kisapi.presentation;
 
 import com.pieceofcake.real_time_data.common.entity.BaseResponseEntity;
 import com.pieceofcake.real_time_data.kisapi.application.KisApiServiceImpl;
-import com.pieceofcake.real_time_data.kisapi.application.sse.KisApiSseEventService;
+import com.pieceofcake.real_time_data.kisapi.application.sse.KisApiWebFluxEventServiceImpl;
 import com.pieceofcake.real_time_data.kisapi.vo.out.GetIntradayChartListResponseVo;
 import com.pieceofcake.real_time_data.kisapi.vo.out.GetPeriodMarketPriceListResponseVo;
 import com.pieceofcake.real_time_data.kisapi.vo.out.GetPieceMarketPriceResponseVo;
@@ -14,9 +14,9 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 @RequestMapping("/api/v1/kis-api")
 @RequiredArgsConstructor
@@ -24,7 +24,7 @@ import reactor.core.publisher.Flux;
 public class KisApiController {
 
     private final KisApiServiceImpl kisApiService;
-    private final KisApiSseEventService kisApiSseEventService;
+    private final KisApiWebFluxEventServiceImpl kisApiWebFluxEventService;
 
     @Operation(
             summary = "주식 시세 단건 조회",
@@ -105,14 +105,9 @@ public class KisApiController {
                     "            - bidRsqn: 각 매수 호가 가격에 대응하는 매수 잔량 리스트\n\n" +
                     "              예) [0, 0, 0, ...]"
     )
-    @GetMapping(value = "/sse/quotes-update/{pieceProductUuid}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<GetRealTimeQuotesResponseDto>> streamKisTradeQuotes(
-            @PathVariable("pieceProductUuid") String pieceProductUuid) {
-        return kisApiSseEventService.getKisQuotesUpdatesByPieceProductUuid(pieceProductUuid)
-                .map(event -> ServerSentEvent.<GetRealTimeQuotesResponseDto>builder()
-                        .event("quotes-update")
-                        .data(event)
-                        .build());
+    @GetMapping(value = "/stream/quotes-update/{pieceProductUuid}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<GetRealTimeQuotesResponseDto> webFluxKisTradeQuotes(@PathVariable String pieceProductUuid) {
+        return kisApiWebFluxEventService.getNewQuotesByPieceProductUuid(pieceProductUuid).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(
@@ -136,13 +131,8 @@ public class KisApiController {
                     "            - date: 체결 시각\n\n" +
                     "              예) \"2025-07-07T14:49:15\""
     )
-    @GetMapping(value = "/sse/market-price-update/{pieceProductUuid}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<GetRealTimeMarketPriceResponseDto>> streamKisTradeMarketPrice(
-            @PathVariable("pieceProductUuid") String pieceProductUuid) {
-        return kisApiSseEventService.getKisMatchedUpdatesByPieceProductUuid(pieceProductUuid)
-                .map(event -> ServerSentEvent.<GetRealTimeMarketPriceResponseDto>builder()
-                        .event("market-price-update")
-                        .data(event)
-                        .build());
+    @GetMapping(value = "/stream/market-price-update/{pieceProductUuid}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<GetRealTimeMarketPriceResponseDto> webFluxKisTradeMarketPrice(@PathVariable String pieceProductUuid) {
+        return kisApiWebFluxEventService.getNewMarketPricesByPieceProductUuid(pieceProductUuid).subscribeOn(Schedulers.boundedElastic());
     }
 }
