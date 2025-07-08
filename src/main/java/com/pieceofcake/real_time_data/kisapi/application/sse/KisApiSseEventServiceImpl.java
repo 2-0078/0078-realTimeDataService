@@ -5,9 +5,11 @@ import com.pieceofcake.real_time_data.websocket.dto.GetRealTimeQuotesResponseDto
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.Scannable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,16 +23,12 @@ public class KisApiSseEventServiceImpl implements KisApiSseEventService {
 
     @Override
     public Flux<GetRealTimeQuotesResponseDto> getKisQuotesUpdatesByPieceProductUuid(String pieceProductUuid) {
-        Sinks.Many<GetRealTimeQuotesResponseDto> sink = quotesSinks.computeIfAbsent(pieceProductUuid,
-                k -> Sinks.many().multicast().onBackpressureBuffer());
-        return sink.asFlux();
+        return getOrCreateSinkFlux(quotesSinks, pieceProductUuid);
     }
 
     @Override
     public Flux<GetRealTimeMarketPriceResponseDto> getKisMatchedUpdatesByPieceProductUuid(String pieceProductUuid) {
-        Sinks.Many<GetRealTimeMarketPriceResponseDto> sink = matchedSinks.computeIfAbsent(pieceProductUuid,
-                k -> Sinks.many().multicast().onBackpressureBuffer());
-        return sink.asFlux();
+        return getOrCreateSinkFlux(matchedSinks, pieceProductUuid);
     }
 
     public void emitQuotesEvent(String pieceProductUuid, GetRealTimeQuotesResponseDto dto) {
@@ -41,13 +39,58 @@ public class KisApiSseEventServiceImpl implements KisApiSseEventService {
         emitToSink(matchedSinks, pieceProductUuid, dto, "[KisApiSseEventService] 체결 SSE 송출");
     }
 
-    private <T> void emitToSink(Map<String, Sinks.Many<T>> sinks, String pieceProductUuid, T event, String logPrefix) {
+    private <T> Flux<T> getOrCreateSinkFlux(Map<String, Sinks.Many<T>> sinkMap, String pieceProductUuid) {
+        Sinks.Many<T> sink = sinkMap.compute(pieceProductUuid, (k, existingSink) -> {
+            if (existingSink == null || Boolean.TRUE.equals(existingSink.scan(Scannable.Attr.TERMINATED))) {
+                log.info("[SSE] 새로운 sink 생성: pieceProductUuid={}", pieceProductUuid);
+                return Sinks.many().replay().latest();  // ✅ replay.latest
+            }
+            return existingSink;
+        });
+
+        return sink.asFlux()
+                .doOnSubscribe(sub -> log.info("[SSE] 구독 시작: pieceProductUuid={}", pieceProductUuid))
+                .doOnCancel(() -> cleanupSinkIfNoSubscribers(sinkMap, pieceProductUuid, sink))
+                .doOnComplete(() -> cleanupSinkIfNoSubscribers(sinkMap, pieceProductUuid, sink))
+                .doOnError(e -> {
+                    if (e instanceof IOException) {
+                        log.info("[SSE] 클라이언트 연결 종료 감지: pieceProductUuid={}", pieceProductUuid);
+                    } else {
+                        log.error("[SSE] 구독 중 에러 발생: pieceProductUuid={}", pieceProductUuid, e);
+                    }
+                    cleanupSinkIfNoSubscribers(sinkMap, pieceProductUuid, sink);
+                });
+    }
+
+    private <T> void cleanupSinkIfNoSubscribers(Map<String, Sinks.Many<T>> sinkMap,
+                                                String pieceProductUuid,
+                                                Sinks.Many<T> sink) {
+        int subscribers = sink.currentSubscriberCount();
+        boolean terminated = Boolean.TRUE.equals(sink.scan(Scannable.Attr.TERMINATED));
+
+        log.info("[SSE] sink 상태 확인: pieceProductUuid={}, subscribers={}, terminated={}",
+                pieceProductUuid, subscribers, terminated);
+
+        if (subscribers == 0) {
+            sinkMap.remove(pieceProductUuid, sink);
+            log.info("[SSE] sink 제거 완료: pieceProductUuid={}", pieceProductUuid);
+        }
+    }
+
+    private <T> void emitToSink(Map<String, Sinks.Many<T>> sinks,
+                                String pieceProductUuid,
+                                T event,
+                                String logPrefix) {
         Sinks.Many<T> sink = sinks.get(pieceProductUuid);
         if (sink != null) {
-            sink.tryEmitNext(event);
-            log.info("{}: pieceProductUuid={}, event={}", logPrefix, pieceProductUuid, event);
+            Sinks.EmitResult result = sink.tryEmitNext(event);
+            if (result.isSuccess()) {
+                log.info("{}: pieceProductUuid={}, event={}", logPrefix, pieceProductUuid, event);
+            } else {
+                log.warn("{} emit 실패: pieceProductUuid={}, result={}", logPrefix, pieceProductUuid, result);
+            }
         } else {
-            log.warn("[KisApiSseEventService] sink 없음: pieceProductUuid={}, eventType={}", pieceProductUuid, event.getClass().getSimpleName());
+            log.warn("[SSE] sink 없음: pieceProductUuid={}, eventType={}", pieceProductUuid, event.getClass().getSimpleName());
         }
     }
 }
