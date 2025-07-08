@@ -1,13 +1,13 @@
 package com.pieceofcake.real_time_data.kisapi.infrastructure;
 
-import com.pieceofcake.real_time_data.kisapi.entity.KisMarketPrice;
+import com.pieceofcake.real_time_data.kisapi.entity.KisQuotes;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.data.mongodb.repository.Tailable;
 import reactor.core.publisher.Flux;
 
-public interface KisMarketPriceRepository extends ReactiveMongoRepository<KisMarketPrice, String> {
+public interface KisQuotesRepository extends ReactiveMongoRepository<KisQuotes, String> {
     @Tailable
     @Query("{ 'stockCode' : ?0 }")
-    Flux<KisMarketPrice> findByStockCode(String stockCode);
+    Flux<KisQuotes> findByStockCode(String stockCode);
 }

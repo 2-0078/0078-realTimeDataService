@@ -23,18 +23,24 @@ public class PieceProductMappingInitializer {
     public void initializeMappings() {
         log.info("🔔 PieceProductMappingCache 초기화 시작");
 
-        // 1) Redis에 stock:piece:* 키 존재 여부 확인
+        // 기존 매핑 키 삭제
         Set<String> existingKeys = redisTemplate.keys("stock:piece:*");
+        Set<String> reverseKeys = redisTemplate.keys("piece:stock:*");
 
+        int deletedCount = 0;
         if (existingKeys != null && !existingKeys.isEmpty()) {
-            // 2) 기존 매핑키가 있으면 삭제
             redisTemplate.delete(existingKeys);
-            log.info("🗑️ 기존 Redis 매핑 키 {}개 삭제 완료", existingKeys.size());
-        } else {
-            log.info("✅ Redis에 기존 매핑 키 없음 → 초기 적재를 진행합니다.");
+            deletedCount += existingKeys.size();
         }
 
-        // 3) DB에서 stockCode ↔ pieceProductUuid 매핑 정보 조회
+        if (reverseKeys != null && !reverseKeys.isEmpty()) {
+            redisTemplate.delete(reverseKeys);
+            deletedCount += reverseKeys.size();
+        }
+
+        log.info("🗑️ 기존 Redis 매핑 키 {}개 삭제 완료", deletedCount);
+
+        // DB에서 매핑 정보 조회
         List<KisProductMiddle> mappings = kisProductMiddleRepository.findAll();
         int totalCount = 0;
 
@@ -42,7 +48,12 @@ public class PieceProductMappingInitializer {
             String stockCode = mapping.getStockCode();
             String pieceProductUuid = mapping.getPieceProductUuid();
 
+            // 정방향 저장: stock → piece(Set)
             redisTemplate.opsForSet().add("stock:piece:" + stockCode, pieceProductUuid);
+
+            // 역방향 저장: piece → stock(String)
+            redisTemplate.opsForValue().set("piece:stock:" + pieceProductUuid, stockCode);
+
             totalCount++;
         }
 
