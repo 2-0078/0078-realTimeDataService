@@ -100,7 +100,6 @@ public class KisApiClient {
 
         // 5. 결과 처리
         if (response.getStatusCode().is2xxSuccessful()) {
-            System.out.println(response.getBody());
             return response.getBody();
         } else {
             throw new RuntimeException("API 호출 실패: " + response.getStatusCode());
