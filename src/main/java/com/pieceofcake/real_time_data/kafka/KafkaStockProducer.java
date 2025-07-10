@@ -2,6 +2,7 @@ package com.pieceofcake.real_time_data.kafka;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pieceofcake.real_time_data.kafka.event.AlertKafkaEvent;
 import com.pieceofcake.real_time_data.kafka.event.StockKafkaMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class KafkaStockProducer {
     private final KafkaTemplate<String, String> realTimeDatakafkaTemplate;
+    private final KafkaTemplate<String, AlertKafkaEvent> alertkafkaTemplate;
     private final ObjectMapper objectMapper;
 
     public void sendQuotesRealTimeData(String rawJson, String stockCode) {
@@ -38,5 +40,11 @@ public class KafkaStockProducer {
         } catch (JsonProcessingException e) {
             log.error("❌ Market Price Kafka 메시지 직렬화 실패", e);
         }
+    }
+
+    public void updatePiecePriceAlertEvent(AlertKafkaEvent alertKafkaEvent) {
+        log.info("Sending update piece price: {}", alertKafkaEvent);
+        CompletableFuture<SendResult<String, AlertKafkaEvent>> future =
+                alertkafkaTemplate.send("update-piece-price-alarm", alertKafkaEvent);
     }
 }

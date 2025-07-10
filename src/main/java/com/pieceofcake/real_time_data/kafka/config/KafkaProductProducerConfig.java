@@ -1,5 +1,6 @@
 package com.pieceofcake.real_time_data.kafka.config;
 
+import com.pieceofcake.real_time_data.kafka.event.AlertKafkaEvent;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,5 +45,25 @@ public class KafkaProductProducerConfig {
     @Bean
     public KafkaTemplate<String, String> realTimeDatakafkaTemplate() {
         return new KafkaTemplate<>(realTimeDataNotification());
+    }
+
+    @Bean
+    public Map<String, Object> alertProducerConfigs() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+
+        return props;
+    }
+
+    @Bean
+    public ProducerFactory<String, AlertKafkaEvent> alertNotification() {
+        return new DefaultKafkaProducerFactory<>(alertProducerConfigs());
+    }
+
+    @Bean
+    public KafkaTemplate<String, AlertKafkaEvent> alertkafkaTemplate() {
+        return new KafkaTemplate<>(alertNotification());
     }
 }
