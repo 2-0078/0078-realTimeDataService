@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.pieceofcake.real_time_data.kafka.event.AlertKafkaEvent;
 import com.pieceofcake.real_time_data.kisapi.application.KisEntityServiceImpl;
 import com.pieceofcake.real_time_data.websocket.dto.GetRealTimeMarketPriceResponseDto;
 import com.pieceofcake.real_time_data.websocket.dto.GetRealTimeQuotesResponseDto;
@@ -22,6 +23,7 @@ import java.util.Set;
 public class KafkaStockConsumer {
     private final KisEntityServiceImpl kisEntityService;
     private final StringRedisTemplate redisTemplate;
+    private final KafkaStockProducer kafkaStockProducer;
 
     @KafkaListener(topics = "quotes-stock-data", groupId = "stock-quotes-group", containerFactory = "realTimeDataEventListener")
     public void consumeQuotesRealTimeData(String message) {
@@ -85,7 +87,22 @@ public class KafkaStockConsumer {
 
             // MongoDB에 Reactive 저장
             kisEntityService.saveKisMarketPrice(dtoList)
-                    .subscribe(saved -> log.info("✅ MongoDB 저장 완료: {}", saved)); // subscribe는 필수
+                    .doOnNext(saved -> log.info("✅ MongoDB 저장 완료: {}", saved))
+                    .doOnComplete(() -> {
+                        // Kafka 이벤트 발행
+                        pieceUuids.forEach(pieceUuid -> {
+                            AlertKafkaEvent event = AlertKafkaEvent.builder()
+                                    .key(pieceUuid)
+                                    .message("실시간 시세 데이터 반영 완료") // 적절한 메시지로 수정 가능
+                                    .memberUuid(null) // 공용 알림
+                                    .commonAlert(true)
+                                    .build();
+                            kafkaStockProducer.updatePiecePriceAlertEvent(event);
+                        });
+                    })
+                    .subscribe();
+
+
 
         } catch (Exception e) {
             log.error("❌ Kafka 메시지 처리 실패", e);
