@@ -5,8 +5,8 @@ import com.pieceofcake.real_time_data.kisapi.dto.out.GetPeriodMarketPriceListRes
 import com.pieceofcake.real_time_data.kisapi.dto.out.GetPieceMarketPriceResponseDto;
 import com.pieceofcake.real_time_data.kisapi.dto.out.GetPieceQuotesResponseDto;
 import com.pieceofcake.real_time_data.kisapi.external.KisApiClient;
-import com.pieceofcake.real_time_data.kisapi.mapper.PieceProductStockMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.function.Function;
@@ -15,13 +15,11 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class KisApiServiceImpl implements KisApiService {
 
-    private final PieceProductStockMapper pieceProductStockMapper;
     private final KisApiClient kisApiClient;
-
+    private final RedisTemplate<String, String> redisTemplate;
 
     private <T> T executeSingleQuery(String pieceProductUuid, Function<String, T> kisApiCall) {
-        String stockCode = pieceProductStockMapper.getOrAssignStockCodeForSingleQuery(pieceProductUuid);
-        return kisApiCall.apply(stockCode);
+        return kisApiCall.apply(resolveStockCode(pieceProductUuid));
     }
 
     @Override
@@ -62,5 +60,14 @@ public class KisApiServiceImpl implements KisApiService {
                 pieceProductUuid,
                 stockCode -> GetPeriodMarketPriceListResponseDto.toDto(kisApiClient.getKisPeriodMarketPriceInfo(stockCode, startDate, endDate, divCode))
         );
+    }
+
+    public String resolveStockCode(String pieceProductUuid) {
+        String redisKey = "piece:stock:" + pieceProductUuid;
+        String stockCode = redisTemplate.opsForValue().get(redisKey);
+        if (stockCode == null) {
+            throw new IllegalArgumentException("Redis 매핑 없음: " + pieceProductUuid);
+        }
+        return stockCode;
     }
 }
