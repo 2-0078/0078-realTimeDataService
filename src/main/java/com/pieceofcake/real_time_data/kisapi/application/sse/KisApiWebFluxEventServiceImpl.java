@@ -25,7 +25,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KisApiWebFluxEventServiceImpl {
+public class KisApiWebFluxEventServiceImpl implements KisApiWebFluxEventService{
 
     private final KisMarketPriceRepository kisMarketPriceRepository;
     private final ReactiveMongoTemplate reactiveMongoTemplate;
@@ -34,6 +34,7 @@ public class KisApiWebFluxEventServiceImpl {
     /**
      * pieceProductUuid 기준으로 과거 체결 내역 조회
      */
+    @Override
     public Flux<GetRealTimeMarketPriceResponseDto> getMarketPricesByPieceProductUuid(String pieceProductUuid) {
         return resolveStockCode(pieceProductUuid)
                 .flatMapMany(stockCode ->
@@ -45,6 +46,7 @@ public class KisApiWebFluxEventServiceImpl {
     /**
      * pieceProductUuid 기준으로 실시간 체결 데이터 구독 (Change Stream)
      */
+    @Override
     public Flux<GetRealTimeMarketPriceResponseDto> getNewMarketPricesByPieceProductUuid(String pieceProductUuid) {
         return resolveStockCode(pieceProductUuid)
                 .flatMapMany(stockCode -> {
@@ -76,6 +78,7 @@ public class KisApiWebFluxEventServiceImpl {
     /**
      * pieceProductUuid 기준으로 실시간 체결 데이터 구독 (Change Stream)
      */
+    @Override
     public Flux<GetRealTimeQuotesResponseDto> getNewQuotesByPieceProductUuid(String pieceProductUuid) {
         return resolveStockCode(pieceProductUuid)
                 .flatMapMany(stockCode -> {
@@ -105,7 +108,8 @@ public class KisApiWebFluxEventServiceImpl {
     /**
      * Redis에서 pieceProductUuid → stockCode 변환
      */
-    private Mono<String> resolveStockCode(String pieceProductUuid) {
+    @Override
+    public Mono<String> resolveStockCode(String pieceProductUuid) {
         String redisKey = "piece:stock:" + pieceProductUuid;
         return redisTemplate.opsForValue().get(redisKey)
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("Redis 매핑 없음: " + pieceProductUuid)));
