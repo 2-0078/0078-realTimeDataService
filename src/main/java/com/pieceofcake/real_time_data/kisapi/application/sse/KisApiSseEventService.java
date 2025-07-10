@@ -7,5 +7,5 @@ import reactor.core.publisher.Flux;
 public interface KisApiSseEventService {
     Flux<GetRealTimeMarketPriceResponseDto> getKisMatchedUpdatesByPieceProductUuid(String pieceProductUuid);
 
-    Flux<GetRealTimeQuotesResponseDto>  getKisQuotesUpdatesByPieceProductUuid(String pieceProductUuid);
+    Flux<GetRealTimeQuotesResponseDto> getKisQuotesUpdatesByPieceProductUuid(String pieceProductUuid);
 }

@@ -46,7 +46,7 @@ public class ExternalWebSocketClient {
 
             @Override
             public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) {
-                log.info("📥 수신 [{}]: {}", key, message.getPayload());
+//                log.info("📥 수신 [{}]: {}", key, message.getPayload());
                 webSocketClientHandleMessage(key, message.getPayload().toString());
             }
 
@@ -89,7 +89,7 @@ public class ExternalWebSocketClient {
                 if (session.isOpen()) {
                     try {
                         session.sendMessage(new TextMessage(json));
-                        log.info("📤 전송 [{}]: {}", key, json);
+//                        log.info("📤 전송 [{}]: {}", key, json);
                     } catch (IOException e) {
                         log.error("❌ 메시지 전송 실패", e);
                     }
