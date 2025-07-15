@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.time.ZoneId;
 import java.util.List;
 
@@ -70,8 +71,9 @@ public class KisApiWebFluxEventServiceImpl implements KisApiWebFluxEventService{
                                         .date(document.getDate("date").toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime())
                                         .build();
 
-                                return GetRealTimeMarketPriceResponseDto.from(entity); // ✅ 여기만 변경됨
-                            });
+                                return GetRealTimeMarketPriceResponseDto.from(entity);
+                            })
+                            .sample(Duration.ofSeconds(1)); // 1초마다 가장 최근 값만 emit
                 });
     }
 
@@ -101,7 +103,8 @@ public class KisApiWebFluxEventServiceImpl implements KisApiWebFluxEventService{
                                         .bidRsqn((List<Integer>) document.get("bidRsqn"))
                                         .build();
                                 return GetRealTimeQuotesResponseDto.from(entity);
-                            });
+                            })
+                            .sample(Duration.ofSeconds(1)); // 1초마다 가장 최근 값만 emit;
                 });
     }
 
